@@ -1,0 +1,6 @@
+torch
+torchvision
+torchsummary
+matplotlib
+tensorboard
+pandas

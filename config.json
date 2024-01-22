@@ -1,0 +1,12 @@
+{
+    "pred_output"       :"output_values.csv",
+    "test_dir_path"     :"path/to/test/images",
+    "trained_model_path":"path/to/a pretrained model/.pt",
+
+
+    "train_dir_path"    :"path/to/train/images",
+    "batch_size"        :128,
+    "learning_rate"     :0.01,
+    "epochs"            :25,
+    "model_save_path"   :"path/to/save/model.pt"
+}
