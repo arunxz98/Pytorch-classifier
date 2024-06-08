@@ -9,7 +9,7 @@ import csv
 from tqdm import tqdm
 import json
 
-from model import MobNetv2_custom_classes
+from base_model import MobNetv2_custom_classes
 
 
 

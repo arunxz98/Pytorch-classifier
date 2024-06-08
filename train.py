@@ -18,11 +18,18 @@ import copy
 import json
 
 # import mlflow 
+import mlflow
+from mlflow_utils import get_mlflow_experiment
+
+
 from torch.utils.tensorboard import SummaryWriter
 
 from torchvision.transforms.functional import InterpolationMode
 
-from model import MobNetv2_custom_classes
+from base_model import MobNetv2_custom_classes
+
+
+experiment = get_mlflow_experiment(experiment= "PyTorchClassifier")
 
 cudnn.benchmark = True
 # plt.ion()   # interactive mode
@@ -63,6 +70,8 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 def train_model(model, criterion, optimizer, scheduler, num_epochs):
+    
+    
     since = time.time()
 
     best_model_wts = copy.deepcopy(model.state_dict())
