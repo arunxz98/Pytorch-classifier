@@ -19,8 +19,8 @@ import json
 
 # import mlflow 
 import mlflow
+from mlflow.models import infer_signature
 from mlflow_utils import get_mlflow_experiment
-
 
 # from torch.utils.tensorboard import SummaryWriter
 
@@ -49,20 +49,19 @@ configs = json.load(open("config.json"))
 # Just normalization for validation
 data_transforms = {
     'train': transforms.Compose([
-        transforms.Resize(224,transforms.InterpolationMode.NEAREST),
+        transforms.Resize(224, transforms.InterpolationMode.NEAREST),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ]),
     'val': transforms.Compose([
-        transforms.Resize(224,transforms.InterpolationMode.NEAREST),
+        transforms.Resize(224, transforms.InterpolationMode.NEAREST),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ]),
 }
 
 experiment_name = 'PyTorchClassifier'
-# mlflow.create_experiment(experiment_name)
 experiment = mlflow.get_experiment_by_name(experiment_name)
 data_dir = configs['train_dir_path']
 image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x),
@@ -77,11 +76,15 @@ class_names = image_datasets['train'].classes
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-
 def train_model(model, criterion, optimizer, scheduler, num_epochs):
-    
     with mlflow.start_run(run_name="experiment_trial1", experiment_id=experiment_id) as run:
         mlflow.pytorch.autolog()
+        
+        # Log parameters
+        mlflow.log_param("learning_rate", configs['learning_rate'])
+        mlflow.log_param("batch_size", configs["batch_size"])
+        mlflow.log_param("num_epochs", num_epochs)
+        
         since = time.time()
 
         best_model_wts = copy.deepcopy(model.state_dict())
@@ -152,10 +155,14 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs):
         model_path = "best_model"
         mlflow.pytorch.log_model(model, model_path)
 
+        # Infer the model signature and input example
+        example_input = torch.randn(1, 3, 224, 224).to(device)
+        signature = infer_signature(example_input.cpu().numpy(), model(example_input).cpu().detach().numpy())
+        mlflow.pytorch.log_model(model, model_path, signature=signature)
+
         # Register the model
         model_uri = f"runs:/{run.info.run_id}/{model_path}"
         mlflow.register_model(model_uri, "MyModel")
-
 
         return model
 
@@ -163,7 +170,6 @@ custom_mobilenet = MobNetv2_custom_classes()
 
 # uncomment the below line to see the summary and sizes of each layer
 # summary(custom_mobilenet,(3,224,224))
-
 
 model_ft = custom_mobilenet.to(device)
 
@@ -173,7 +179,6 @@ optimizer_ft = optim.SGD(model_ft.parameters(), lr=configs['learning_rate'], mom
 
 # Decay LR by a factor of 0.1 every 7 epochs
 exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
-
 
 model_ft = train_model(model_ft, loss_criteron, optimizer_ft, exp_lr_scheduler,
                        num_epochs=configs['epochs'])
