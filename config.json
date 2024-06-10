@@ -7,6 +7,6 @@
     "train_dir_path"    :"images",
     "batch_size"        :4,
     "learning_rate"     :0.01,
-    "epochs"            :2,
+    "epochs"            :6,
     "model_save_path"   :"model.pt"
 }

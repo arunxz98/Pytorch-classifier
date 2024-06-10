@@ -5,3 +5,6 @@ matplotlib
 tensorboard
 pandas
 mlflow
+flask
+pillow
+tqdm
