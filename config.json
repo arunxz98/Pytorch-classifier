@@ -1,10 +1,10 @@
 {
     "pred_output"       :"output_values.csv",
-    "test_dir_path"     :"/Users/arunsimharajula/Documents/code/data-for-projects/pytorch-classifier/images",
+    "test_dir_path"     :"images",
     "trained_model_path":"",
 
 
-    "train_dir_path"    :"/Users/arunsimharajula/Documents/code/data-for-projects/pytorch-classifier/images",
+    "train_dir_path"    :"images",
     "batch_size"        :4,
     "learning_rate"     :0.01,
     "epochs"            :2,

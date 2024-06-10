@@ -4,3 +4,4 @@ torchsummary
 matplotlib
 tensorboard
 pandas
+mlflow

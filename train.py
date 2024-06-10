@@ -19,17 +19,22 @@ import json
 
 # import mlflow 
 import mlflow
-# from mlflow_utils import get_mlflow_experiment
+from mlflow_utils import get_mlflow_experiment
 
 
-from torch.utils.tensorboard import SummaryWriter
+# from torch.utils.tensorboard import SummaryWriter
 
 from torchvision.transforms.functional import InterpolationMode
 
 from base_model import MobNetv2_custom_classes
 
+experiment_name = 'PyTorchClassifier'
+experiment = mlflow.get_experiment_by_name(experiment_name)
+if experiment is None:
+    experiment_id = mlflow.create_experiment(experiment_name)
+else:
+    experiment_id = experiment.experiment_id
 
-experiment = mlflow.get_experiment_by_name("PyTorchClassifier")
 
 cudnn.benchmark = True
 # plt.ion()   # interactive mode
@@ -38,7 +43,7 @@ cudnn.benchmark = True
 configs = json.load(open("config.json"))
 
 # Initializing logger
-writer = SummaryWriter()
+# writer = SummaryWriter()
 
 # Data augmentation and normalization for training
 # Just normalization for validation
@@ -56,6 +61,9 @@ data_transforms = {
     ]),
 }
 
+experiment_name = 'PyTorchClassifier'
+# mlflow.create_experiment(experiment_name)
+experiment = mlflow.get_experiment_by_name(experiment_name)
 data_dir = configs['train_dir_path']
 image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x),
                                           data_transforms[x])
@@ -69,9 +77,10 @@ class_names = image_datasets['train'].classes
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
+
 def train_model(model, criterion, optimizer, scheduler, num_epochs):
     
-    with mlflow.start_run(run_name="experiment_trial1", experiment_id=experiment.experiment_id) as run:
+    with mlflow.start_run(run_name="experiment_trial1", experiment_id=experiment_id) as run:
         mlflow.pytorch.autolog()
         since = time.time()
 
@@ -109,9 +118,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs):
 
                         # backward + optimize only if in training phase
                         if phase == 'train':
-                            # calculate gradients dy/dx
                             loss.backward()
-                            # update weights
                             optimizer.step()
 
                     # statistics
@@ -123,34 +130,34 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs):
                 epoch_loss = running_loss / dataset_sizes[phase]
                 epoch_acc = running_corrects.double() / dataset_sizes[phase]
 
-                print('{} Loss: {:.4f} Acc: {:.4f}'.format(
-                    phase, epoch_loss, epoch_acc))
-                
-                # writing logs
-                if phase == 'train':
-                    writer.add_scalar("Loss/train",epoch_loss,epoch)
-                    writer.add_scalar("Accuracy/train",epoch_acc,epoch)
-                if phase == "val":
-                    writer.add_scalar("Loss/val",epoch_loss,epoch)
-                    writer.add_scalar("Accuracy/val",epoch_acc,epoch)
+                print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
 
+                # Log metrics manually
+                mlflow.log_metric(f"{phase}_loss", epoch_loss, step=epoch)
+                mlflow.log_metric(f"{phase}_accuracy", epoch_acc, step=epoch)
 
                 # deep copy the model
                 if phase == 'val' and epoch_acc > best_acc:
                     best_acc = epoch_acc
                     best_model_wts = copy.deepcopy(model.state_dict())
 
-
         time_elapsed = time.time() - since
-        print('Training complete in {:.0f}m {:.0f}s'.format(
-            time_elapsed // 60, time_elapsed % 60))
+        print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
         print('Best val Acc: {:4f}'.format(best_acc))
 
         # load best model weights
         model.load_state_dict(best_model_wts)
+
+        # Log the best model weights
+        model_path = "best_model"
+        mlflow.pytorch.log_model(model, model_path)
+
+        # Register the model
+        model_uri = f"runs:/{run.info.run_id}/{model_path}"
+        mlflow.register_model(model_uri, "MyModel")
+
+
         return model
-
-
 
 custom_mobilenet = MobNetv2_custom_classes()
 
@@ -172,4 +179,4 @@ model_ft = train_model(model_ft, loss_criteron, optimizer_ft, exp_lr_scheduler,
                        num_epochs=configs['epochs'])
 
 torch.save(model_ft, configs["model_save_path"])
-writer.close()
+# writer.close()
