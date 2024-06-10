@@ -1,7 +1,7 @@
 {
     "pred_output"       :"output_values.csv",
     "test_dir_path"     :"images",
-    "trained_model_path":"",
+    "trained_model_path":"model.pt",
 
 
     "train_dir_path"    :"images",
